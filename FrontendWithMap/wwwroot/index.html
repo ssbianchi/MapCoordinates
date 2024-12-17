@@ -1,0 +1,93 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de Endereços</title>
+    <!-- Link para o CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=COLOQUE_SUA_CHAVE_AQUI&callback=initMap" async defer></script>
+</head>
+<body>
+    <h1>Mapa de Endereços</h1>
+
+    <!-- Mensagem de Loading -->
+    <div id="loading" class="loading">
+        <p>Carregando, por favor aguarde...</p>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Endereço</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="addressTableBody">
+                <!-- Dados serão preenchidos dinamicamente -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let map;
+        let markers = [];
+
+        // Função para inicializar o mapa
+        async function initMap() {
+            try {
+                const response = await fetch("http://localhost:5296/api/Coordinates/from-excel");
+                const locations = await response.json();
+
+                if (!locations || locations.length === 0) {
+                    console.error("Nenhuma coordenada encontrada.");
+                    return;
+                }
+
+                // Inicializa o mapa na primeira coordenada
+                map = new google.maps.Map(document.getElementById("map"), {
+                    zoom: 12,
+                    center: { lat: locations[0].latitude, lng: locations[0].longitude },
+                });
+
+                const tableBody = document.getElementById("addressTableBody");
+
+                locations.forEach((location, index) => {
+                    const marker = new google.maps.Marker({
+                        position: { lat: location.latitude, lng: location.longitude },
+                        map: map,
+                        title: location.endereco
+                    });
+
+                    markers.push(marker);
+
+                    // Adiciona linha na tabela
+                    const row = tableBody.insertRow();
+                    row.innerHTML = `
+                                <td>${location.endereco}</td>
+                                <td><button onclick="focusMarker(${index})">Ver no Mapa</button></td>
+                            `;
+                });
+            } catch (error) {
+                console.error("Erro ao carregar dados: ", error);
+            } finally {
+                // Oculta o carregamento
+                document.getElementById("loading").style.display = "none";
+            }
+        }
+
+        // Função para focar em um marcador no mapa
+        function focusMarker(index) {
+            const marker = markers[index];
+            if (marker) {
+                map.panTo(marker.getPosition());
+                map.setZoom(15);
+            }
+        }
+    </script>
+</body>
+</html>
